@@ -1,3 +1,4 @@
+This repo is heavily inspired by https://github.com/hagopj13/node-express-boilerplate and in parts straight up copied.
 The goal of this repo is twofold. I want to have a production ready express boilerplate that I have written myself and
 therefore understand every bit of it, for if (when) it needs to be adapted at some point.
 Second, I want to use this README to collect lessons learned, notes, explaining how things work and why.

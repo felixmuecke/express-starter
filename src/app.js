@@ -7,12 +7,16 @@ const routes = require('./routes/v1');
 const { ApiError, errorHandler } = require('./errors/errors');
 const httpStatus = require('http-status');
 const app = express();
+const config = require('./config/config');
 
 //Setup passport jwt strategy
 require('./config/passport');
 
-app.use(morgan.successHandler);
-app.use(morgan.errorHandler);
+// Skip morgan logging when running integration tests
+if (config.env != 'test') {
+  app.use(morgan.successHandler);
+  app.use(morgan.errorHandler);
+}
 
 app.use(cors());
 app.use(helmet());
