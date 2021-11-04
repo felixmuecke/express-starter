@@ -16,9 +16,9 @@ const deleteKey = (obj, path) => {
 const toJSON = (schema) => {
   // This block (and calling existingTransform further below)
   // avoids transform functions set by other plugins or directly to be overwritten.
-  let exisitingTransform;
+  let existingTransform;
   if (schema.options.toJSON && schema.options.toJSON.transform) {
-    exisitingTransform = schema.options.toJSON.transform;
+    existingTransform = schema.options.toJSON.transform;
   }
 
   const newTransform = function (doc, ret, options) {
@@ -34,8 +34,8 @@ const toJSON = (schema) => {
     delete ret.createdAt;
     delete ret.updatedAt;
 
-    if (exisitingTransform) {
-      exisitingTransform(doc, ret, options);
+    if (existingTransform) {
+      existingTransform(doc, ret, options);
     }
 
     return ret;
