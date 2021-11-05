@@ -9,17 +9,23 @@ setupTestDB();
 
 describe('/auth', () => {
   describe('POST /register', () => {
-    //For all of these I need a user. Let's create a valid one and then break only the bits I want to trigger a 400 with.
-    let newUser;
-    beforeEach(() => {
-      newUser = {
+    const path = '/v1/auth/register';
+
+    const getValidUser = () => {
+      return {
         email: faker.internet.email().toLowerCase(),
         password: 'validPassword123',
         name: faker.name.findName(),
       };
+    };
+
+    let newUser;
+    beforeEach(() => {
+      newUser = getValidUser();
     });
+
     it('should return a 201, user data and tokens if request data is ok', async () => {
-      const { body } = await request(app).post('/v1/auth/register').send(newUser).expect(httpStatus.CREATED);
+      const { body } = await request(app).post(path).send(newUser).expect(httpStatus.CREATED);
 
       const userInDB = await User.findOne({ email: newUser.email });
       expect(userInDB).toBeDefined();
@@ -44,46 +50,105 @@ describe('/auth', () => {
       });
     });
 
-    it('should return 400 if name is empty or missing', async () => {
-      newUser.name = '';
-      await request(app).post('/v1/auth/register').expect(httpStatus.BAD_REQUEST);
-
-      newUser.name = null;
-      await request(app).post('/v1/auth/register').expect(httpStatus.BAD_REQUEST);
-    });
-
-    it('should return 400 if email is empty or missing', async () => {
-      newUser.email = '';
-      await request(app).post('/v1/auth/register').expect(httpStatus.BAD_REQUEST);
-
-      newUser.email = null;
-      await request(app).post('/v1/auth/register').expect(httpStatus.BAD_REQUEST);
-    });
-
-    it('should return 400 if password is empty or missing', async () => {
-      newUser.password = '';
-      await request(app).post('/v1/auth/register').expect(httpStatus.BAD_REQUEST);
-
-      newUser.password = null;
-      await request(app).post('/v1/auth/register').expect(httpStatus.BAD_REQUEST);
-    });
-
-    it('should return a 400 if email is invalid', async () => {
-      newUser.email = 'notAnEmail';
-      const { body } = await request(app).post('/v1/auth/register').send(newUser).expect(httpStatus.BAD_REQUEST);
-      expect(body.message).toContain('must be a valid email');
-    });
-
     it('should return a 400 if the email is already taken', async () => {
-      await User.create({ ...newUser });
-      const res = await request(app).post('/v1/auth/register').send(newUser).expect(httpStatus.BAD_REQUEST);
+      await User.create(newUser);
+      const res = await request(app).post(path).send(newUser).expect(httpStatus.BAD_REQUEST);
       expect(res.body.message).toBe('Email already taken');
     });
 
-    it('should return 400 if password does not match validation criteria', async () => {
-      newUser.password = 'passw';
-      const res = await request(app).post('/v1/auth/register').send(newUser).expect(httpStatus.BAD_REQUEST);
-      expect(res.body.message).toContain('password');
+    it('should return 400 if one of the validation criteria is not met', async () => {
+      const expectBadRequest = async (newUser) => {
+        await request(app).post(path).send(newUser).expect(httpStatus.BAD_REQUEST);
+      };
+
+      newUser.email = '';
+      await expectBadRequest(newUser);
+      newUser.email = null;
+      await expectBadRequest(newUser);
+      newUser.email = 'invalidEmail';
+      await expectBadRequest(newUser);
+
+      newUser = getValidUser();
+
+      newUser.password = '';
+      await expectBadRequest(newUser);
+      newUser.password = null;
+      await expectBadRequest(newUser);
+      newUser.password = 'pass';
+      await expectBadRequest(newUser);
+
+      newUser = getValidUser();
+
+      newUser.name = '';
+      await expectBadRequest(newUser);
+      newUser.name = null;
+      await expectBadRequest(newUser);
+    });
+  });
+
+  describe('POST /login', () => {
+    const path = '/v1/auth/login';
+    let credentials;
+    beforeEach(() => {
+      credentials = {
+        email: faker.internet.email().toLowerCase(),
+        password: 'password1',
+      };
+    });
+
+    it('should send back a 200, user and tokens if credentials are correct', async () => {
+      const user = {
+        ...credentials,
+        name: faker.name.findName(),
+      };
+      await User.create(user);
+
+      const { body } = await request(app).post(path).send(credentials).expect(httpStatus.OK);
+      expect(body.user).toEqual({
+        id: expect.anything(),
+        name: user.name,
+        email: user.email,
+        roles: [],
+      });
+
+      expect(body.tokens).toEqual({
+        accessToken: expect.anything(),
+        refreshToken: expect.anything(),
+      });
+    });
+
+    it('should return 401 if the a user with this email does not exist', async () => {
+      await request(app).post(path).send(credentials).expect(httpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 if the password is incorrect', async () => {
+      await User.create({
+        ...credentials,
+        name: faker.name.findName(),
+      });
+      credentials.password = 'validButWrongPassword123';
+      await request(app).post(path).send(credentials).expect(httpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 400 if one of the validation criteria is not met', async () => {
+      const expectBadRequest = async (credentials) => {
+        await request(app).post(path).send(credentials).expect(httpStatus.BAD_REQUEST);
+      };
+
+      credentials.email = '';
+      await expectBadRequest(credentials);
+      credentials.email = null;
+      await expectBadRequest(credentials);
+      credentials.email = 'invalidEmail';
+      await expectBadRequest(credentials);
+      credentials.email = faker.internet.email().toLowerCase();
+
+      credentials.password = '';
+      await expectBadRequest(credentials);
+      credentials.password = null;
+      await expectBadRequest(credentials);
+      credentials.password = 'pass';
+      await expectBadRequest(credentials);
     });
   });
 });

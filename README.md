@@ -54,3 +54,9 @@ Functions with an express specific signature that can be applied to all or speci
 The way the validation schemas are constructed here allows me to specify where I expect my data to be (params, body, query).
 
 # Testing
+
+When writing integration tests one question is whether to test validation also (done by Joi).
+Let's assume you test a login endpoint and have written a validation schema for it that checks that there is a (valid) email in the body and a password that meets some password criteria.
+When testing you might want to check if those validations are actually triggered. This can be important if e.g. a dev assumes that password can not be null when writing controller or service level code.
+On the other hand testing every single path that triggers a validation can get out of hand quickly when the validation schemas become more complex than the case described.
+I do not have a final answer for this. For now I tried to group all the validation tests together in one test but am still uncertain how to approach this going forward.

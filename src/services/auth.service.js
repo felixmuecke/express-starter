@@ -1,7 +1,7 @@
-const { User } = require("../models");
-const httpStatus = require("http-status");
-const { ApiError } = require("../errors/errors");
-const { userService } = require("../services");
+const { User } = require('../models');
+const httpStatus = require('http-status');
+const { ApiError } = require('../errors/errors');
+const { userService } = require('../services');
 
 //register
 // make a user doc
@@ -13,8 +13,8 @@ const { userService } = require("../services");
 // return the user if ok
 const loginWithEmailAndPassword = async (email, password) => {
   const user = await userService.getUserByEmail(email);
-  if (!user || !user.isPasswordMatch(password)) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid email or password.");
+  if (!user || !(await user.isPasswordMatch(password))) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid email or password.');
   }
   return user;
 };
